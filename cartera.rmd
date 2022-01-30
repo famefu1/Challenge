@@ -1,0 +1,237 @@
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+library(gridExtra)
+library(tibble)
+library(zoo)
+library(hhi)
+library(ggpubr)
+library(stringr)
+```
+
+###Limpiamos los Datos
+```{r}
+file<-"cartera.txt"
+df<-data.frame(read.delim(file,header=TRUE,sep="|",dec="."))
+df<-df[,-1]
+df<-sapply(df,as.character)
+df[is.na(df)]<-" "
+df<-as.data.frame(df)
+fechaI<-fecha%>%summarise(FechaINICIO=as.Date(df$FECHA.INICIO))
+fechaT<-df%>%summarise(FechaTermina=as.Date(df$FECHA_DE_TERMINACION))
+df<-df%>%mutate(fechaI,fechaT)
+df<-df[,-12]
+df<-df[,-12]
+
+```
+
+```{r}
+
+RentaTC<- df%>% group_by(ID_CLIENTE)%>%summarise(rentat=sum(as.numeric(as.character(RENTAS))))
+TT<-RentaTC%>% summarise(r=sum(RentaTC$rentat))
+RR1<-RentaTC%>%summarise(ID_CLIENTE=RentaTC$ID_CLIENTE,r1=(RentaTC$rentat/TT$r)*100)
+RR<-RentaTC%>%summarise(ID_CLIENTE=RentaTC$ID_CLIENTE,r1=paste(round(((RentaTC$rentat/TT$r)*100),2),'%'))
+
+#dfpc<-dfpc%>%mutate(PorcentajeTRS= RR)
+
+```
+Al no encontrar relación númerica entre los datos "Renta", "Rentas","Valor residual " y "Monto inicial por activo", asi como relación entre plazo y fecha de inicio y terminación las vamos a tratar como variables independientes entre ellas.
+Con dos variables a considerar que es el Contrato y el CLiente.
+Procederemos al analisis exploratorio de Datos
+
+###Analis Exploratorio 
+```{r}
+#Renta por CLiente
+RentaTXC<- df%>% group_by(ID_CLIENTE)%>%summarise(rentat=sum(as.numeric(as.character(RENTA))))
+TTXC<-RentaTXC%>% summarise(r=sum(RentaTXC$rentat))
+RR1XC<-RentaTXC%>%summarise(ID_CLIENTE=RentaTXC$ID_CLIENTE,r1=(RentaTXC$rentat/TTXC$r)*100)
+pRRXC<-RentaTXC%>%summarise(ID_CLIENTE=RentaTC$ID_CLIENTE,r1=paste(round(((RentaTXC$rentat/TTXC$r)*100),2),'%'))
+RENTAXC<-RentaTXC%>% mutate(Participacion_Decimal=RR1XC$r1,Participacion_Porcentaje=pRRXC$r1)
+#Por Monto
+summary(RENTAXC$rentat)
+quantile(RENTAXC$rentat,prob=seq(0,1,length=11))
+
+hist(RENTAXC$rentat)
+###al ver el histograma y el resumen podemos ver que la media esta muy arriba de la mediana, lo que nos indica que tenemos sesgo a la derecha, es decir hay observaciónes aunque pocas que son muy grandes, lo que nos dice que existen clientes con renta muy alta
+
+#Por Porcentaje
+summary(RENTAXC$Participacion_Decimal)
+quantile(RENTAXC$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### Nos muestra la distribucion entre deciles que la cartera de rentas se encuentra muy cargada en los ultimos 3 deciles. Lo que nos indica nuevamente el peso tan grande que existe de algunos clientes
+
+```
+
+```{r}
+#REnta por COntrato
+RentaTXCO<- df%>% group_by(CONTRATO)%>%summarise(rentat=sum(as.numeric(as.character(RENTA))))
+TTXCO<-RentaTXCO%>% summarise(r=sum(RentaTXCO$rentat))
+RR1XCO<-RentaTXCO%>%summarise(ID_CLIENTE=RentaTXCO$ID_CLIENTE,r1=(RentaTXCO$rentat/TTXCO$r)*100)
+pRRXCO<-RentaTXCO%>%summarise(ID_CLIENTE=RentaTXCO$ID_CLIENTE,r1=paste(round(((RentaTXCO$rentat/TTXCO$r)*100),2),'%'))
+RENTAXCO<-RentaTXCO%>% mutate(Participacion_Decimal=RR1XCO$r1,Participacion_Porcentaje=pRRXCO$r1)
+#Por Monto
+summary(RENTAXCO$rentat)
+hist(RENTAXCO$rentat)
+#Por Porcentaje
+summary(RENTAXCO$Participacion_Decimal)
+quantile(RENTAXCO$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### AL observar el histograma y los datos estadísticos, seguimos teniendo sesgos por que la media esta arriba de la mediana. Al observar los datos vemos que por contrato no está tan sesgado, sin embargo cuando acumulas los contratos por cliente vemos que están concetrados en algunos contraros grnades de manera importante, es decir tienen mayor relevancia.
+```
+
+
+
+
+
+
+```{r}
+#RENTAS por cliente
+RentaTCC<- df%>% group_by(ID_CLIENTE)%>%summarise(rentat=sum(as.numeric(as.character(RENTAS))))
+TTC<-RentaTCC%>% summarise(r=sum(RentaTCC$rentat))
+RR1C<-RentaTCC%>%summarise(ID_CLIENTE=RentaTCC$ID_CLIENTE,r1=(RentaTCC$rentat/TTC$r)*100)
+RRC<-RentaTCC%>%summarise(ID_CLIENTE=RentaTCC$ID_CLIENTE,r1=paste(round(((RentaTCC$rentat/TTC$r)*100),2),'%'))
+RENTASXCC<-RentaTCC%>%mutate(Participacion_Decimal=RR1C$r1,Participacion_Porcentaje=RRC$r1)
+#Por Monto
+summary(RENTASXC$rentat)
+hist(RENTASXC$rentat)
+#Por Porcentaje
+summary(RENTASXC$Participacion_Decimal)
+quantile(RENTASXC$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### Podemos ver como la concentración de rentas se ubica de manera importante en pocos clientes, específicamente en aquellos del 10 percentil con un  21 por  ciento de participación de las rentas totales
+
+```
+
+
+
+```{r}
+#RENTAS POR CONTRATO
+RentaTC<- df%>% group_by(CONTRATO)%>%summarise(rentat=sum(as.numeric(as.character(RENTAS))))
+TT<-RentaTC%>% summarise(r=sum(RentaTC$rentat))
+RR1<-RentaTC%>%summarise(ID_CLIENTE=RentaTC$ID_CLIENTE,r1=(RentaTC$rentat/TT$r)*100)
+RR<-RentaTC%>%summarise(ID_CLIENTE=RentaTC$ID_CLIENTE,r1=paste(round(((RentaTC$rentat/TT$r)*100),2),'%'))
+RENTASXCC<-RentaTC%>%mutate(Participacion_Decimal=RR1$r1,Participacion_Porcentaje=RR$r1)
+#Por Monto
+summary(RENTASXCC$rentat)
+hist(RENTASXCC$rentat)
+#Por Porcentaje
+summary(RENTASXCC$Participacion_Decimal)
+quantile(RENTASXCC$Participacion_Decimal,prob=seq(0,1,length=11))
+
+## Podemos observar que si analizamos por contrato vemos que aunque sigue sesgado a contratos grandes en el caso de RENTAS, tiene una mejor distribución que si lo analizamos por Cliente. Con un máximo de participación por contrato de 2.1153%
+```
+
+```{r}
+#Valor Residual por cliente
+RentaTVR<- df%>% group_by(ID_CLIENTE)%>%summarise(rentat=sum(as.numeric(as.character(Valor.Residual))))
+TVR<-RentaTVR%>% summarise(r=sum(RentaTVR$rentat))
+RVR<-RentaTVR%>%summarise(ID_CLIENTE=RentaTVR$ID_CLIENTE,r1=(RentaTVR$rentat/TVR$r)*100)
+RRVR<-RentaTVR%>%summarise(ID_CLIENTE=RentaTVR$ID_CLIENTE,r1=paste(round(((RentaTVR$rentat/TVR$r)*100),2),'%'))
+RENTASXVR<-RentaTVR%>%mutate(Participacion_Decimal=RVR$r1,Participacion_Porcentaje=RRVR$r1)
+#Por Monto
+summary(RENTASXVR$rentat)
+hist(RENTASXVR$rentat)
+#Por Porcentaje
+summary(RENTASXVR$Participacion_Decimal)
+quantile(RENTASXVR$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### AL analizar la informacion de los valores residuales podemos ver que en los cuantiles más altos se concentra el mayor VALOR Residual, el ultimo percentil cuenta con un 25.28064% de los montos del total de valores residuales.Lo que corresponde con lo indicado en los valores del Monto.
+```
+
+
+
+```{r}
+#Valor Residual por CONTRATO
+RentaTVR<- df%>% group_by(CONTRATO)%>%summarise(rentat=sum(as.numeric(as.character(Valor.Residual))))
+TVR<-RentaTVR%>% summarise(r=sum(RentaTVR$rentat))
+RVR<-RentaTVR%>%summarise(ID_CLIENTE=RentaTVR$ID_CLIENTE,r1=(RentaTVR$rentat/TVR$r)*100)
+RRVR<-RentaTVR%>%summarise(ID_CLIENTE=RentaTVR$ID_CLIENTE,r1=paste(round(((RentaTVR$rentat/TVR$r)*100),2),'%'))
+RENTASXVR<-RentaTVR%>%mutate(Participacion_Decimal=RVR$r1,Participacion_Porcentaje=RRVR$r1)
+#Por Monto
+summary(RENTASXVR$rentat)
+hist(RENTASXVR$rentat)
+#Por Porcentaje
+summary(RENTASXVR$Participacion_Decimal)
+quantile(RENTASXVR$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### Podemos ver por los resultados del summary que los valores residuales por contrato no están tan dispersados a comparación de lo visto anteriormente, sin embargo, seguimos presentando contratos con valores residuales grandes que presentan un 5.86384% del total de los valores residuales en el último decil
+```
+
+```{r}
+# MONTO INICIAL DEL ACTIVO SIN IVA por CLIENTE
+RentaTMI<- df%>% group_by(ID_CLIENTE)%>%summarise(rentat=sum(as.numeric(as.character(MONTO_INICIAL_ACTIVO_S_IVA))))
+TMI<-RentaTMI%>% summarise(r=sum(RentaTMI$rentat))
+RMI<-RentaTMI%>%summarise(ID_CLIENTE=RentaTMI$ID_CLIENTE,r1=(RentaTMI$rentat/TMI$r)*100)
+RRMI<-RentaTMI%>%summarise(ID_CLIENTE=RentaTMI$ID_CLIENTE,r1=paste(round(((RentaTMI$rentat/TMI$r)*100),2),'%'))
+RENTASXMI<-RentaTMI%>%mutate(Participacion_Decimal=RMI$r1,Participacion_Porcentaje=RRMI$r1)
+#Por Monto
+summary(RENTASXMI$rentat)
+hist(RENTASXMI$rentat)
+#Por Porcentaje
+summary(RENTASXMI$Participacion_Decimal)
+quantile(RENTASXMI$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### Podemos ver que los montos arrendados por Cliente presentan una distribución sesgada en la que el mayor porcentaje un 20.977% del total de MOntos Iniciales se va a concentrar en el último 10% de los clientes
+```
+
+```{r}
+# MONTO INICIAL DEL ACTIVO SIN IVA por CONTRATO
+RentaTMI<- df%>% group_by(CONTRATO)%>%summarise(rentat=sum(as.numeric(as.character(MONTO_INICIAL_ACTIVO_S_IVA))))
+TMI<-RentaTMI%>% summarise(r=sum(RentaTMI$rentat))
+RMI<-RentaTMI%>%summarise(ID_CLIENTE=RentaTMI$ID_CLIENTE,r1=(RentaTMI$rentat/TMI$r)*100)
+RRMI<-RentaTMI%>%summarise(ID_CLIENTE=RentaTMI$ID_CLIENTE,r1=paste(round(((RentaTMI$rentat/TMI$r)*100),2),'%'))
+RENTASXMI<-RentaTMI%>%mutate(Participacion_Decimal=RMI$r1,Participacion_Porcentaje=RRMI$r1)
+#Por Monto
+summary(RENTASXMI$rentat)
+hist(RENTASXMI$rentat)
+#Por Porcentaje
+summary(RENTASXMI$Participacion_Decimal)
+quantile(RENTASXMI$Participacion_Decimal,prob=seq(0,1,length=11))
+
+### Podemos ver que los montos arrendados por CONTRATO presentan una distribución sesgada en la que el mayor porcentaje un 2.28252% del total de MOntos Iniciales se va a concentrar en el último 10% de los contratos de mayor monto. Aunque observamos que la media y mediana se encuentran muy cercanos lo que nos dice que hay una gran cantidad de contratos con montos pequeños pero que mitigan el efecto de los contratos con montos iniciales grandes
+```
+
+```{r}
+###Plazo por Contrato
+RentaP<- df%>% group_by(CONTRATO)%>%summarise(rentat=sum(as.numeric(as.character(PLAZO))))
+TP<-RentaP%>% summarise(r=sum(RentaP$rentat))
+RP<-RentaP%>%summarise(ID_CLIENTE=RentaP$ID_CLIENTE,r1=(RentaP$rentat/TP$r)*100)
+RRP<-RentaP%>%summarise(ID_CLIENTE=RentaP$ID_CLIENTE,r1=paste(round(((RentaP$rentat/TP$r)*100),2),'%'))
+RENTASXP<-RentaP%>%mutate(Participacion_Decimal=RP$r1,Participacion_Porcentaje=RRP$r1)
+#Por Monto
+summary(RENTASXP$rentat)
+hist(RENTASXP$rentat)
+#Por Porcentaje
+summary(RENTASXP$Participacion_Decimal)
+quantile(RENTASXP$Participacion_Decimal,prob=seq(0,1,length=11))
+### En el caso de los plazos podemos ver que tenemos una distribucion normal con un poco de sesgo y  con poca varianza, lo que nos dice que no tenemos arrendamientos ni al muy corto ni largo plazo. Aunque el largo plazo si representa un poco más porcentaje de los arrendamientos.
+```
+```{r}
+# Reestructura por Contrato
+TotalRestructurado<- sum(with(df,Tipo.de.Reestrucutra==" ")) +sum(with(df,Tipo.de.Reestrucutra!=" "))
+prestructura<-sum(with(df,Tipo.de.Reestrucutra!=" "))/TotalRestructurado
+print(prestructura)
+
+#### Podemos ver que solo el 3% de los  contratos por arrendamientos Solicitaron una reestructura por el programa COVID
+                  
+```
+
+```{r}
+#Regiones por Cliente
+Regiond<- df%>%summarise(Cliente=ID_CLIENTE,ttregion=Region)
+dfregion<-Regiond%>% group_by(Cliente)%>%filter(!duplicated(ttregion))
+TotalRegion<-sum(with(dfregion,ttregion!=""))
+regiones<-data.frame(summary(dfregion$ttregion))
+porcentajereg<-regiones%>%summarise(regioness=rownames(regiones),porcentajeregiones=regiones$summary.dfregion.ttregion/TotalRegion,Clientes_en_Region=regiones$summary.dfregion.ttregion)
+#CDMX<-sum(with(str_count(dfregion$rentat,"CDMX")))
+porcentajereg
+summary(porcentajereg$porcentajeregiones)
+###podemos ver que la mayor concetración de clientes está en la CDMX con un 52% y que el promedio de clientes por estado  es de 4% con un total de 22 estados. El ESTADO DE MEXICO es otra Area de interés de clientes con 42 y un 10% de concentración de los clientes
+                  
+```
+
+
+
+
